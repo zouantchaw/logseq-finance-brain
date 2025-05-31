@@ -112,11 +112,11 @@ category:: Shopping
 
 ## 🚀 Getting Started
 
-1. Install the plugin from Logseq marketplace (coming soon)
-2. Run the `/Finance: Initialize` command to set up the structure
-3. Import your first credit card statement
-4. Import your investment statements
-5. View your dashboard at `[[Finance/Dashboard]]`
+1. Enable Developer mode in Logseq settings
+2. Download the latest release or build from source
+3. Click "Load unpacked plugin" and select the `dist` folder
+4. Click the 💰 icon in the toolbar
+5. Run `/Finance: Initialize` to set up the structure
 
 ## 📖 Usage
 
@@ -124,7 +124,7 @@ category:: Shopping
 
 1. Export CSV from your bank/broker (Capital One, Robinhood, etc.)
 2. Click the Finance icon in toolbar
-3. Select "Import Statement"
+3. Select "Import Statement" (coming soon)
 4. Review and confirm the import
 
 ### Quick Entry
@@ -152,21 +152,31 @@ The dashboard automatically updates with:
 
 ### Prerequisites
 
-- Node.js 16+
-- pnpm
+- Node.js 18+
+- npm or pnpm
 - Logseq Desktop
 
 ### Setup
 
 ```bash
 # Install dependencies
-pnpm install
+npm install
 
-# Development mode with hot reload
-pnpm dev
+# Development mode with watch
+npm run dev
 
 # Build for production
-pnpm build
+npm run build
+```
+
+### Project Structure
+
+```
+src/
+├── index.ts          # Main plugin entry point
+├── index.html        # HTML entry for Parcel
+└── types/            # TypeScript type definitions
+    └── logseq.d.ts   # Logseq global types
 ```
 
 ### Testing
@@ -174,21 +184,37 @@ pnpm build
 Load the plugin in Logseq developer mode:
 
 1. Enable Developer mode in Logseq settings
-2. Click "Load unpacked plugin"
-3. Select this directory
+2. Run `npm run build` to compile the plugin
+3. Click "Load unpacked plugin"
+4. Select the project root directory (not the dist folder)
 
 ## 📝 Implementation Status
 
-- [x] Basic architecture design
-- [x] Investment tracking design
-- [ ] TypeScript conversion
+### Phase 1: Setup and Basic Structure ✅
+
+- [x] TypeScript conversion
+- [x] Build configuration with Parcel
+- [x] Basic plugin structure
+- [x] Toolbar icon and slash commands
+- [x] Finance page structure initialization
+
+### Phase 2: Data Models and Storage 🚧
+
 - [ ] Core data models
-- [ ] CSV import functionality
-- [ ] Investment statement parsing
+- [ ] Block property utilities
+- [ ] Query helpers
+
+### Phase 3: Statement Import
+
+- [ ] CSV parser
+- [ ] Import UI
+- [ ] Block creation from statements
+
+### Phase 4: Dashboard and Analytics
+
 - [ ] Dashboard queries
 - [ ] Net worth calculations
 - [ ] UI components
-- [ ] Documentation
 
 See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for detailed roadmap.
 

@@ -1,1 +1,7 @@
 examples/*
+node_modules/
+dist/
+.cache/
+.parcel-cache/
+*.log
+.DS_Store
