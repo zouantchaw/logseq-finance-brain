@@ -23,7 +23,7 @@
   "logseq": {
     "id": "finance-brain",
     "title": "Finance Brain",
-    "icon": "logseq.png",
+    "icon": "logseq-finance-brain.png",
     "main": "dist/index.html"
   }
 }
