@@ -95,7 +95,7 @@ interface FinanceSummary {
 - [x] Create helpers to read/write block properties
 - [x] Implement property validation
 - [x] Add type conversion utilities (string to number, date parsing)
-- [ ] Handle investment-specific properties
+- [x] Handle investment-specific properties
 
 ### 2.3 Query Helpers
 
