@@ -1,6 +1,195 @@
 # Logseq Finance Brain - Query Examples
 
-These queries can be used directly in your Logseq graph to analyze your financial data.
+These queries can be used directly in Logseq or are embedded in the Finance Dashboard.
+
+## Dashboard Queries
+
+### Liquid Cash (Checking + Savings)
+
+```clojure
+query-table:: false
+#+BEGIN_QUERY
+{:title "Liquid Cash (Checking + Savings)"
+ :query [:find (sum ?balance)
+         :where
+         [?b :block/properties ?props]
+         [(get ?props :type) ?type]
+         [(= ?type "account")]
+         [(get ?props :account-type) ?account-type]
+         (or [(= ?account-type "checking")]
+             [(= ?account-type "savings")])
+         [(get ?props :balance) ?balance]]}
+#+END_QUERY
+```
+
+### Credit Card Accounts
+
+```clojure
+query-table:: true
+query-properties:: [:account-name :balance :credit-limit :institution]
+#+BEGIN_QUERY
+{:title "Credit Card Accounts"
+ :query [:find (pull ?b [*])
+         :where
+         [?b :block/properties ?props]
+         [(get ?props :type) ?type]
+         [(= ?type "account")]
+         [(get ?props :account-type) ?account-type]
+         [(= ?account-type "credit-card")]]}
+#+END_QUERY
+```
+
+### Investment Accounts Summary
+
+```clojure
+query-table:: true
+query-properties:: [:account-name :total-value :cash-balance :invested-value]
+#+BEGIN_QUERY
+{:title "Investment Accounts"
+ :query [:find (pull ?b [*])
+         :where
+         [?b :block/properties ?props]
+         [(get ?props :type) ?type]
+         [(= ?type "investment-account")]]}
+#+END_QUERY
+```
+
+### Recent Transactions (Last 30 Days)
+
+```clojure
+query-table:: true
+query-properties:: [:date :merchant :amount :category :account]
+query-sort-by:: date
+query-sort-desc:: true
+#+BEGIN_QUERY
+{:title "Last 30 Days"
+ :query [:find (pull ?b [*])
+         :in $ ?start-date
+         :where
+         [?b :block/properties ?props]
+         [(get ?props :type) ?type]
+         (or [(= ?type "expense")]
+             [(= ?type "income")])
+         [(get ?props :date) ?date]
+         [(>= ?date ?start-date)]]
+ :inputs [:30d-before]}
+#+END_QUERY
+```
+
+## Analysis Queries
+
+### Monthly Expenses by Category
+
+```clojure
+query-table:: true
+query-properties:: [:category :amount]
+#+BEGIN_QUERY
+{:title "Expenses by Category (30 days)"
+ :query [:find ?category (sum ?amount)
+         :in $ ?start-date
+         :where
+         [?b :block/properties ?props]
+         [(get ?props :type) ?type]
+         [(= ?type "expense")]
+         [(get ?props :date) ?date]
+         [(>= ?date ?start-date)]
+         [(get ?props :category) ?category]
+         [(get ?props :amount) ?amount]]
+ :inputs [:30d-before]
+ :result-transform (fn [result]
+                    (map (fn [[category total]]
+                          {:category category
+                           :amount total})
+                         result))}
+#+END_QUERY
+```
+
+### Investment Holdings
+
+```clojure
+query-table:: true
+query-properties:: [:symbol :name :shares :current-value :gain-loss :gain-loss-percent]
+#+BEGIN_QUERY
+{:title "All Holdings"
+ :query [:find (pull ?b [*])
+         :where
+         [?b :block/properties ?props]
+         [(get ?props :type) ?type]
+         [(= ?type "holding")]]}
+#+END_QUERY
+```
+
+### Net Worth Calculation
+
+```clojure
+#+BEGIN_QUERY
+{:title "Net Worth Components"
+ :query [:find ?type (sum ?value)
+         :where
+         [?b :block/properties ?props]
+         (or-join [?props ?type ?value]
+           (and [(get ?props :type) "account"]
+                [(get ?props :account-type) ?account-type]
+                (or [(= ?account-type "checking")]
+                    [(= ?account-type "savings")])
+                [(identity "assets") ?type]
+                [(get ?props :balance) ?value])
+           (and [(get ?props :type) "investment-account"]
+                [(identity "investments") ?type]
+                [(get ?props :total-value) ?value])
+           (and [(get ?props :type) "account"]
+                [(get ?props :account-type) "credit-card"]
+                [(identity "liabilities") ?type]
+                [(get ?props :balance) ?value]))]
+ :result-transform (fn [result]
+                    (let [totals (into {} result)
+                          assets (or (get totals "assets") 0)
+                          investments (or (get totals "investments") 0)
+                          liabilities (or (get totals "liabilities") 0)]
+                      {:assets assets
+                       :investments investments
+                       :liabilities liabilities
+                       :net-worth (- (+ assets investments) liabilities)}))}
+#+END_QUERY
+```
+
+### Available Credit
+
+```clojure
+#+BEGIN_QUERY
+{:title "Available Credit"
+ :query [:find (sum ?available)
+         :where
+         [?b :block/properties ?props]
+         [(get ?props :type) ?type]
+         [(= ?type "account")]
+         [(get ?props :account-type) ?account-type]
+         [(= ?account-type "credit-card")]
+         [(get ?props :balance) ?balance]
+         [(get ?props :credit-limit) ?limit]
+         [(- ?limit ?balance) ?available]]}
+#+END_QUERY
+```
+
+## Usage Notes
+
+1. **Block Properties**: All financial data is stored as block properties
+
+   - Accounts: `type:: account`, `account-type::`, `balance::`, etc.
+   - Transactions: `type:: expense` or `type:: income`, `amount::`, `date::`, etc.
+   - Holdings: `type:: holding`, `symbol::`, `shares::`, `current-value::`, etc.
+
+2. **Date Formats**: Use ISO date format (YYYY-MM-DD) for date properties
+
+3. **Page References**: Account references use `[[Finance/Accounts/AccountName]]` format
+
+4. **Query Results**:
+
+   - `query-table:: true` displays results as a table
+   - `query-properties::` specifies which properties to show in the table
+   - `query-sort-by::` and `query-sort-desc::` control sorting
+
+5. **Inputs**: `:30d-before` is a built-in input that provides the date 30 days ago
 
 ## Basic Queries
 
