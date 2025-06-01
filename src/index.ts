@@ -1,11 +1,11 @@
 import "@logseq/libs";
 import { SettingSchemaDesc } from "@logseq/libs/dist/LSPlugin";
-import { 
-  createBlockWithProperties, 
-  accountToBlockProperties, 
+import {
+  createBlockWithProperties,
+  accountToBlockProperties,
   investmentAccountToBlockProperties,
   transactionToBlockProperties,
-  holdingToBlockProperties 
+  holdingToBlockProperties,
 } from "./utils/blocks";
 import { Account, InvestmentAccount, Transaction } from "./models/finance";
 import { formatCurrency, formatDate } from "./utils/converters";
@@ -63,9 +63,12 @@ async function main(): Promise<void> {
     await showAddAccountDialog();
   });
 
-  logseq.Editor.registerSlashCommand("Finance: Add Investment Account", async () => {
-    await showAddInvestmentAccountDialog();
-  });
+  logseq.Editor.registerSlashCommand(
+    "Finance: Add Investment Account",
+    async () => {
+      await showAddInvestmentAccountDialog();
+    }
+  );
 
   logseq.Editor.registerSlashCommand("expense", async () => {
     await showQuickExpenseDialog();
@@ -105,7 +108,10 @@ async function showAddAccountDialog(): Promise<void> {
   // In the future, this would show a modal dialog
   const accountsPage = await logseq.Editor.getPage("Finance/Accounts");
   if (!accountsPage) {
-    logseq.App.showMsg("Finance/Accounts page not found. Run /Finance: Initialize first", "error");
+    logseq.App.showMsg(
+      "Finance/Accounts page not found. Run /Finance: Initialize first",
+      "error"
+    );
     return;
   }
 
@@ -134,7 +140,10 @@ async function showAddAccountDialog(): Promise<void> {
 async function showAddInvestmentAccountDialog(): Promise<void> {
   const investmentsPage = await logseq.Editor.getPage("Finance/Investments");
   if (!investmentsPage) {
-    logseq.App.showMsg("Finance/Investments page not found. Run /Finance: Initialize first", "error");
+    logseq.App.showMsg(
+      "Finance/Investments page not found. Run /Finance: Initialize first",
+      "error"
+    );
     return;
   }
 
@@ -155,7 +164,10 @@ async function showAddInvestmentAccountDialog(): Promise<void> {
   );
 
   if (accountBlock) {
-    logseq.App.showMsg("✅ Investment account created successfully!", "success");
+    logseq.App.showMsg(
+      "✅ Investment account created successfully!",
+      "success"
+    );
   }
 }
 
@@ -304,7 +316,8 @@ async function initializeFinanceStructure(): Promise<void> {
     const subPages = [
       {
         name: "Finance/Dashboard",
-        content: "# 📊 Finance Dashboard\n\nYour financial overview powered by queries.",
+        content:
+          "# 📊 Finance Dashboard\n\nYour financial overview powered by queries.",
         populate: createDashboardContent,
       },
       {
@@ -341,9 +354,13 @@ async function initializeFinanceStructure(): Promise<void> {
         if (page) {
           createdCount++;
           // Insert content as first block
-          const firstBlock = await logseq.Editor.insertBlock(page.uuid, pageInfo.content, {
-            isPageBlock: true,
-          });
+          const firstBlock = await logseq.Editor.insertBlock(
+            page.uuid,
+            pageInfo.content,
+            {
+              isPageBlock: true,
+            }
+          );
 
           // Populate with sample data
           if (firstBlock && pageInfo.populate) {
@@ -383,13 +400,15 @@ async function initializeFinanceStructure(): Promise<void> {
 /**
  * Create dashboard content with queries
  */
-async function createDashboardContent(dashboardBlockUuid: string): Promise<void> {
+async function createDashboardContent(
+  dashboardBlockUuid: string
+): Promise<void> {
   // Add liquid cash query
   const liquidCashBlock = await logseq.Editor.insertBlock(
     dashboardBlockUuid,
     "## 💵 Liquid Cash"
   );
-  
+
   if (liquidCashBlock) {
     await logseq.Editor.insertBlock(
       liquidCashBlock.uuid,
@@ -414,7 +433,7 @@ async function createDashboardContent(dashboardBlockUuid: string): Promise<void>
     dashboardBlockUuid,
     "## 💳 Credit Card Debt"
   );
-  
+
   if (debtBlock) {
     await logseq.Editor.insertBlock(
       debtBlock.uuid,
@@ -438,7 +457,7 @@ query-properties:: [:account-name :balance :credit-limit :institution]
     dashboardBlockUuid,
     "## 📈 Investment Portfolio"
   );
-  
+
   if (investmentBlock) {
     await logseq.Editor.insertBlock(
       investmentBlock.uuid,
@@ -460,7 +479,7 @@ query-properties:: [:account-name :total-value :cash-balance :invested-value]
     dashboardBlockUuid,
     "## 📝 Recent Transactions"
   );
-  
+
   if (transactionsBlock) {
     await logseq.Editor.insertBlock(
       transactionsBlock.uuid,
@@ -493,21 +512,21 @@ async function createSampleAccounts(accountsPageUuid: string): Promise<void> {
     {
       name: "Chase Checking",
       type: "checking",
-      balance: 3500.00,
+      balance: 3500.0,
       institution: "Chase Bank",
       lastUpdated: new Date(),
     },
     {
       name: "Capital One Savings",
       type: "savings",
-      balance: 12000.00,
+      balance: 12000.0,
       institution: "Capital One",
       lastUpdated: new Date(),
     },
     {
       name: "Chase Freedom CC",
       type: "credit-card",
-      balance: 1250.50,
+      balance: 1250.5,
       creditLimit: 5000,
       institution: "Chase Bank",
       lastUpdated: new Date(),
@@ -515,7 +534,7 @@ async function createSampleAccounts(accountsPageUuid: string): Promise<void> {
     {
       name: "Capital One Platinum CC",
       type: "credit-card",
-      balance: 2100.50,
+      balance: 2100.5,
       creditLimit: 3500,
       institution: "Capital One",
       lastUpdated: new Date(),
@@ -523,15 +542,22 @@ async function createSampleAccounts(accountsPageUuid: string): Promise<void> {
   ];
 
   for (const account of sampleAccounts) {
-    const accountType = account.type === "credit-card" ? "Credit Card" : 
-                       account.type === "checking" ? "Checking" : "Savings";
-    const balance = account.type === "credit-card" ? 
-                   `${formatCurrency(account.balance)} / ${formatCurrency(account.creditLimit || 0)}` :
-                   formatCurrency(account.balance);
-    
+    const accountType =
+      account.type === "credit-card"
+        ? "Credit Card"
+        : account.type === "checking"
+        ? "Checking"
+        : "Savings";
+    const balance =
+      account.type === "credit-card"
+        ? `${formatCurrency(account.balance)} / ${formatCurrency(
+            account.creditLimit || 0
+          )}`
+        : formatCurrency(account.balance);
+
     const content = `${account.name} (${accountType}) - ${balance}`;
     const block = await logseq.Editor.insertBlock(accountsPageUuid, content);
-    
+
     if (block) {
       const props = accountToBlockProperties(account);
       for (const [key, value] of Object.entries(props)) {
@@ -544,45 +570,67 @@ async function createSampleAccounts(accountsPageUuid: string): Promise<void> {
 /**
  * Create sample investment accounts and holdings
  */
-async function createSampleInvestments(investmentsPageUuid: string): Promise<void> {
+async function createSampleInvestments(
+  investmentsPageUuid: string
+): Promise<void> {
   // Create Roth IRA account
   const rothIraBlock = await logseq.Editor.insertBlock(
     investmentsPageUuid,
     "Robinhood Roth IRA - $17,980.28"
   );
-  
+
   if (rothIraBlock) {
     const accountProps = investmentAccountToBlockProperties({
       name: "Robinhood Roth IRA",
       type: "roth-ira",
       totalValue: 17980.28,
       cashBalance: 480.28,
-      investedValue: 17500.00,
+      investedValue: 17500.0,
       institution: "Robinhood",
       lastUpdated: new Date(),
     });
-    
+
     for (const [key, value] of Object.entries(accountProps)) {
       await logseq.Editor.upsertBlockProperty(rothIraBlock.uuid, key, value);
     }
 
     // Add holdings
     const holdings = [
-      { symbol: "VTI", name: "Vanguard Total Stock Market ETF", shares: 50, price: 220.50, basis: 10500 },
-      { symbol: "VXUS", name: "Vanguard Total International Stock ETF", shares: 80, price: 55.25, basis: 4200 },
-      { symbol: "BND", name: "Vanguard Total Bond Market ETF", shares: 30, price: 72.00, basis: 2200 },
+      {
+        symbol: "VTI",
+        name: "Vanguard Total Stock Market ETF",
+        shares: 50,
+        price: 220.5,
+        basis: 10500,
+      },
+      {
+        symbol: "VXUS",
+        name: "Vanguard Total International Stock ETF",
+        shares: 80,
+        price: 55.25,
+        basis: 4200,
+      },
+      {
+        symbol: "BND",
+        name: "Vanguard Total Bond Market ETF",
+        shares: 30,
+        price: 72.0,
+        basis: 2200,
+      },
     ];
 
     for (const holding of holdings) {
       const value = holding.shares * holding.price;
       const gainLoss = value - holding.basis;
       const gainLossPercent = (gainLoss / holding.basis) * 100;
-      
+
       const holdingBlock = await logseq.Editor.insertBlock(
         rothIraBlock.uuid,
-        `${holding.symbol} - ${holding.shares} shares @ ${formatCurrency(holding.price)} = ${formatCurrency(value)}`
+        `${holding.symbol} - ${holding.shares} shares @ ${formatCurrency(
+          holding.price
+        )} = ${formatCurrency(value)}`
       );
-      
+
       if (holdingBlock) {
         const props = holdingToBlockProperties({
           account: "Finance/Investments/Robinhood Roth IRA",
@@ -596,9 +644,12 @@ async function createSampleInvestments(investmentsPageUuid: string): Promise<voi
           gainLossPercent: gainLossPercent,
           percentageOfPortfolio: (value / 17500) * 100,
         });
-        
         for (const [key, value] of Object.entries(props)) {
-          await logseq.Editor.upsertBlockProperty(holdingBlock.uuid, key, value);
+          await logseq.Editor.upsertBlockProperty(
+            holdingBlock.uuid,
+            key,
+            value
+          );
         }
       }
     }
@@ -609,18 +660,18 @@ async function createSampleInvestments(investmentsPageUuid: string): Promise<voi
     investmentsPageUuid,
     "Fidelity Brokerage - $5,250.00"
   );
-  
+
   if (brokerageBlock) {
     const accountProps = investmentAccountToBlockProperties({
       name: "Fidelity Brokerage",
       type: "brokerage",
-      totalValue: 5250.00,
-      cashBalance: 250.00,
-      investedValue: 5000.00,
+      totalValue: 5250.0,
+      cashBalance: 250.0,
+      investedValue: 5000.0,
       institution: "Fidelity",
       lastUpdated: new Date(),
     });
-    
+
     for (const [key, value] of Object.entries(accountProps)) {
       await logseq.Editor.upsertBlockProperty(brokerageBlock.uuid, key, value);
     }
@@ -630,21 +681,23 @@ async function createSampleInvestments(investmentsPageUuid: string): Promise<voi
 /**
  * Create sample statements with transactions
  */
-async function createSampleStatements(statementsPageUuid: string): Promise<void> {
+async function createSampleStatements(
+  statementsPageUuid: string
+): Promise<void> {
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
-  
+
   // Create current month folder
   const monthBlock = await logseq.Editor.insertBlock(
     statementsPageUuid,
     `## ${currentMonth}`
   );
-  
+
   if (monthBlock) {
     // Add sample transactions
     const transactions: Transaction[] = [
       {
         date: new Date(),
-        amount: 125.50,
+        amount: 125.5,
         merchant: "Whole Foods",
         category: "Groceries",
         account: "Finance/Accounts/Chase Freedom CC",
@@ -652,7 +705,7 @@ async function createSampleStatements(statementsPageUuid: string): Promise<void>
       },
       {
         date: new Date(Date.now() - 86400000), // Yesterday
-        amount: 45.00,
+        amount: 45.0,
         merchant: "Shell Gas Station",
         category: "Transportation",
         account: "Finance/Accounts/Chase Freedom CC",
@@ -660,7 +713,7 @@ async function createSampleStatements(statementsPageUuid: string): Promise<void>
       },
       {
         date: new Date(Date.now() - 172800000), // 2 days ago
-        amount: 3500.00,
+        amount: 3500.0,
         merchant: "Employer Corp",
         category: "Salary",
         account: "Finance/Accounts/Chase Checking",
@@ -678,9 +731,11 @@ async function createSampleStatements(statementsPageUuid: string): Promise<void>
 
     for (const transaction of transactions) {
       const icon = transaction.type === "expense" ? "💸" : "💰";
-      const content = `${icon} ${transaction.merchant} - ${formatCurrency(transaction.amount)}`;
+      const content = `${icon} ${transaction.merchant} - ${formatCurrency(
+        transaction.amount
+      )}`;
       const txBlock = await logseq.Editor.insertBlock(monthBlock.uuid, content);
-      
+
       if (txBlock) {
         const props = transactionToBlockProperties(transaction);
         for (const [key, value] of Object.entries(props)) {
