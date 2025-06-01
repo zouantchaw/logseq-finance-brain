@@ -26,8 +26,11 @@ graph TB
         E --> J[merchant:: name]
 
         F --> K[balance:: amount]
-        F --> L[account-type:: checking/savings/credit]
+        F --> L[account-type:: checking/savings/credit/loan]
         F --> M[institution:: name]
+        F --> LN[loan-type:: student/auto/mortgage/personal]
+        F --> IR[interest-rate:: percentage]
+        F --> MP[minimum-payment:: amount]
 
         O --> Q[account-type:: investment]
         O --> R[total-value:: amount]
@@ -54,6 +57,7 @@ graph TB
         Y --> AG[Liquid Cash Aggregator]
         Y --> AH[Net Worth Calculator]
         Y --> AI[Asset Allocation Analyzer]
+        Y --> DM[Debt Management Calculator]
 
         Z --> AJ[Datalog Queries]
         Z --> AK[Block Aggregations]
@@ -65,6 +69,7 @@ graph TB
         AN[Import Modal]
         AO[Finance Summary Widget]
         AP[Net Worth Widget]
+        DW[Debt Management Widget]
     end
 
     W -.-> A
@@ -79,6 +84,7 @@ graph TB
     AL --> AM
     AM --> AO
     AM --> AP
+    AM --> DW
 ```
 
 ## Data Structure
@@ -91,7 +97,10 @@ Finance/
 ├── Accounts/
 │   ├── Capital One Platinum CC
 │   ├── Capital One Savings
-│   └── Bank of America Checking
+│   ├── Bank of America Checking
+│   ├── Student Loan - Federal Direct
+│   ├── Auto Loan - Toyota Financial
+│   └── Personal Loan - SoFi
 ├── Investments/
 │   └── Robinhood Roth IRA/
 │       ├── Overview
@@ -117,6 +126,21 @@ credit-limit:: 3500
 current-balance:: 2100.50
 last-updated:: 2025-01-15
 institution:: "Capital One"
+```
+
+#### Loan Account Block
+
+```clojure
+type:: account
+account-name:: "Federal Direct Subsidized"
+account-type:: loan
+loan-type:: student
+balance:: 25000
+interest-rate:: 4.99
+minimum-payment:: 250
+original-amount:: 30000
+last-updated:: 2025-01-15
+institution:: "US Department of Education"
 ```
 
 #### Investment Account Block
@@ -176,10 +200,12 @@ The dashboard will use Datalog queries to calculate:
 
 - **Liquid Cash**: Sum of all checking/savings account balances
 - **Total Investments**: Sum of all investment account values
-- **Net Worth**: Assets (liquid + investments) - Liabilities (credit card balances)
+- **Net Worth**: Assets (liquid + investments) - Liabilities (credit cards + loans)
 - **Cash Flow**: Income - Expenses for a given period
 - **Burn Rate**: Average monthly expenses
 - **Available Credit**: Credit limits - Current balances
+- **Total Debt**: Credit card balances + Loan balances
+- **Debt-to-Income Ratio**: Monthly debt payments / Monthly income
 - **Asset Allocation**: Breakdown of investment holdings
 
 ## Plugin Components
@@ -196,9 +222,10 @@ The dashboard will use Datalog queries to calculate:
 
 - Real-time calculations using queries
 - Monthly/Quarterly/Yearly views
-- Net worth tracking over time
+- Net worth tracking over time (includes all assets and liabilities)
 - Investment performance metrics
 - Asset allocation visualization
+- Debt management insights
 - Export capabilities
 
 ### 3. Query Engine

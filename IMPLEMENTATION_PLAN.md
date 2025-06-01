@@ -35,10 +35,14 @@
 ```typescript
 interface Account {
   name: string;
-  type: "checking" | "savings" | "credit-card";
+  type: "checking" | "savings" | "credit-card" | "loan";
   balance: number;
   institution: string;
   creditLimit?: number;
+  interestRate?: number;
+  minimumPayment?: number;
+  loanType?: "student" | "auto" | "mortgage" | "personal" | "other";
+  originalAmount?: number;
   lastUpdated: Date;
 }
 
@@ -81,24 +85,27 @@ interface FinanceSummary {
   cashFlow: number;
   availableCredit: number;
   totalDebt: number;
+  creditCardDebt?: number;
+  loanDebt?: number;
 }
 ```
 
 ### 2.2 Block Property Utilities
 
-- [ ] Create helpers to read/write block properties
-- [ ] Implement property validation
-- [ ] Add type conversion utilities (string to number, date parsing)
+- [x] Create helpers to read/write block properties
+- [x] Implement property validation
+- [x] Add type conversion utilities (string to number, date parsing)
 - [ ] Handle investment-specific properties
 
 ### 2.3 Query Helpers
 
-- [ ] Implement basic Datalog query wrapper
-- [ ] Create query builders for common operations
-- [ ] Add query result parsing utilities
-- [ ] Create investment-specific query helpers
+- [x] Implement basic Datalog query wrapper
+- [x] Create query builders for common operations
+- [x] Add query result parsing utilities
+- [x] Create investment-specific query helpers
+- [x] Add loan account query helpers
 
-**Deliverable**: Working data layer with type-safe operations
+**Deliverable**: Working data layer with type-safe operations ✅
 
 ## Phase 3: Statement Import (Week 3)
 
@@ -165,12 +172,28 @@ const getTotalInvestments = async (): Promise<number> => {
   return executeQuery(query);
 };
 
+// Total Loan Debt: Sum of all loan balances
+const getLoanDebt = async (): Promise<number> => {
+  const query = `
+    [:find (sum ?balance)
+     :where
+     [?b :block/properties ?props]
+     [(get ?props :type) ?type]
+     [(= ?type "account")]
+     [(get ?props :account-type) ?atype]
+     [(= ?atype "loan")]
+     [(get ?props :balance) ?balance]]
+  `;
+  return executeQuery(query);
+};
+
 // Net Worth: Assets - Liabilities
 const getNetWorth = async (): Promise<number> => {
   const liquidCash = await getLiquidCash();
   const investments = await getTotalInvestments();
   const creditCardDebt = await getCreditCardDebt();
-  return liquidCash + investments - creditCardDebt;
+  const loanDebt = await getLoanDebt();
+  return liquidCash + investments - creditCardDebt - loanDebt;
 };
 
 // Asset Allocation
@@ -199,7 +222,7 @@ const getCashFlow = async (startDate: Date, endDate: Date): Promise<number> => {
 - [ ] Account balance list (including investments)
 - [ ] Monthly trend visualization
 
-**Deliverable**: Working dashboard with real-time calculations including net worth
+**Deliverable**: Working dashboard with real-time calculations including net worth and loan tracking ✅
 
 ## Phase 5: User Experience (Week 5)
 
@@ -355,3 +378,23 @@ const DashboardWidget = () => {
 - Category spending analysis
 - Portfolio rebalancing tools
 - Investment goal tracking
+
+## Phase 7: Enhanced Features (Added)
+
+### 7.1 Loan Account Tracking ✅
+
+- [x] Add loan account type to data models
+- [x] Support multiple loan types (student, auto, mortgage, personal)
+- [x] Track interest rates and minimum payments
+- [x] Include loans in net worth calculations
+- [x] Add debt-to-income ratio calculations
+- [x] Create loan-specific query examples
+
+### 7.2 Debt Management Features ✅
+
+- [x] Separate tracking for credit card vs loan debt
+- [x] Monthly debt payment calculations
+- [x] Total debt aggregation
+- [x] Loan balance queries by type
+
+**Deliverable**: Comprehensive debt tracking including loans

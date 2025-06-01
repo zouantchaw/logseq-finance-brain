@@ -39,6 +39,23 @@ query-properties:: [:account-name :balance :credit-limit :institution]
 #+END_QUERY
 ```
 
+### Loan Accounts
+
+```clojure
+query-table:: true
+query-properties:: [:account-name :balance :interest-rate :minimum-payment :loan-type :institution]
+#+BEGIN_QUERY
+{:title "Loan Accounts"
+ :query [:find (pull ?b [*])
+         :where
+         [?b :block/properties ?props]
+         [(get ?props :type) ?type]
+         [(= ?type "account")]
+         [(get ?props :account-type) ?account-type]
+         [(= ?account-type "loan")]]}
+#+END_QUERY
+```
+
 ### Investment Accounts Summary
 
 ```clojure
@@ -139,17 +156,25 @@ query-properties:: [:symbol :name :shares :current-value :gain-loss :gain-loss-p
                 [(get ?props :total-value) ?value])
            (and [(get ?props :type) "account"]
                 [(get ?props :account-type) "credit-card"]
-                [(identity "liabilities") ?type]
+                [(identity "credit-card-debt") ?type]
+                [(get ?props :balance) ?value])
+           (and [(get ?props :type) "account"]
+                [(get ?props :account-type) "loan"]
+                [(identity "loans") ?type]
                 [(get ?props :balance) ?value]))]
  :result-transform (fn [result]
                     (let [totals (into {} result)
                           assets (or (get totals "assets") 0)
                           investments (or (get totals "investments") 0)
-                          liabilities (or (get totals "liabilities") 0)]
+                          credit-debt (or (get totals "credit-card-debt") 0)
+                          loans (or (get totals "loans") 0)
+                          total-debt (+ credit-debt loans)]
                       {:assets assets
                        :investments investments
-                       :liabilities liabilities
-                       :net-worth (- (+ assets investments) liabilities)}))}
+                       :credit-card-debt credit-debt
+                       :loans loans
+                       :total-debt total-debt
+                       :net-worth (- (+ assets investments) total-debt)}))}
 #+END_QUERY
 ```
 
@@ -178,6 +203,7 @@ query-properties:: [:symbol :name :shares :current-value :gain-loss :gain-loss-p
    - Accounts: `type:: account`, `account-type::`, `balance::`, etc.
    - Transactions: `type:: expense` or `type:: income`, `amount::`, `date::`, etc.
    - Holdings: `type:: holding`, `symbol::`, `shares::`, `current-value::`, etc.
+   - Loans: `type:: account`, `account-type:: loan`, `balance::`, `interest-rate::`, `loan-type::`, etc.
 
 2. **Date Formats**: Use ISO date format (YYYY-MM-DD) for date properties
 
@@ -240,17 +266,21 @@ query-properties:: [:symbol :name :shares :current-value :gain-loss :gain-loss-p
                (or [(= ?type "account")]
                    [(= ?type "investment-account")])
                (or [(get ?props :balance) ?balance]
-                   [(get ?props :total-value) ?balance])]
+                   [(get ?props :total-value) ?balance])
+               [(get ?props :account-type) ?atype]
+               [(not= ?atype "credit-card")]
+               [(not= ?atype "loan")]]
              $) [[?assets]]]
-         ;; Calculate total liabilities (credit card balances)
+         ;; Calculate total liabilities (credit card balances + loans)
          [(q '[:find (sum ?balance)
                :where
                [?b :block/properties ?props]
                [(get ?props :type) ?type]
                [(= ?type "account")]
                [(get ?props :account-type) ?atype]
-               [(= ?atype "credit-card")]
-               [(get ?props :current-balance) ?balance]]
+               (or [(= ?atype "credit-card")]
+                   [(= ?atype "loan")])
+               [(get ?props :balance) ?balance]]
              $) [[?liabilities]]]
          ;; Calculate net worth
          [(- ?assets ?liabilities) ?net-worth]]
@@ -595,3 +625,160 @@ query-properties:: [:symbol :name :shares :current-value :gain-loss :gain-loss-p
 2. Use indexes when available
 3. Limit result sets with date ranges
 4. Cache complex calculations in properties
+
+### Total Loan Debt
+
+```clojure
+#+BEGIN_QUERY
+{:title "🎓 Total Loan Debt"
+ :query [:find (sum ?balance)
+         :where
+         [?b :block/properties ?props]
+         [(get ?props :type) ?type]
+         [(= ?type "account")]
+         [(get ?props :account-type) ?atype]
+         [(= ?atype "loan")]
+         [(get ?props :balance) ?balance]]}
+#+END_QUERY
+```
+
+### Loan Details by Type
+
+```clojure
+#+BEGIN_QUERY
+{:title "📋 Loans by Type"
+ :query [:find ?loan-type (sum ?balance) (avg ?rate)
+         :keys type total-balance avg-rate
+         :where
+         [?b :block/properties ?props]
+         [(get ?props :type) ?type]
+         [(= ?type "account")]
+         [(get ?props :account-type) ?atype]
+         [(= ?atype "loan")]
+         [(get ?props :loan-type) ?loan-type]
+         [(get ?props :balance) ?balance]
+         [(get ?props :interest-rate) ?rate]]
+ :result-transform (fn [result]
+                    (map #(update % :avg-rate
+                                 (fn [r] (str (format "%.2f" r) "%")))
+                         result))}
+#+END_QUERY
+```
+
+### Total Monthly Debt Payments
+
+```clojure
+#+BEGIN_QUERY
+{:title "💳 Monthly Debt Payments"
+ :query [:find ?type (sum ?payment)
+         :keys debt-type monthly-payment
+         :where
+         [?b :block/properties ?props]
+         [(get ?props :type) ?type]
+         [(= ?type "account")]
+         [(get ?props :account-type) ?atype]
+         (or [(= ?atype "credit-card")]
+             [(= ?atype "loan")])
+         [(get ?props :minimum-payment) ?payment]
+         [(cond
+           (= ?atype "credit-card") "Credit Cards"
+           (= ?atype "loan") "Loans") ?type]]
+ :result-transform (fn [result]
+                    (conj result
+                          {:debt-type "Total"
+                           :monthly-payment (reduce + 0 (map :monthly-payment result))}))}
+#+END_QUERY
+```
+
+### Debt-to-Income Ratio
+
+```clojure
+#+BEGIN_QUERY
+{:title "📊 Debt-to-Income Ratio"
+ :query [:find ?monthly-income ?monthly-debt ?ratio
+         :keys income debt-payments ratio
+         :where
+         ;; Get monthly income
+         [(q '[:find (sum ?amount)
+               :where
+               [?b :block/properties ?props]
+               [(get ?props :type) ?type]
+               [(= ?type "income")]
+               [(get ?props :date) ?date]
+               [(- (today) 30) ?start-date]
+               [(>= ?date ?start-date)]
+               [(get ?props :amount) ?amount]]
+             $) [[?monthly-income]]]
+         ;; Get monthly debt payments
+         [(q '[:find (sum ?payment)
+               :where
+               [?b :block/properties ?props]
+               [(get ?props :type) ?type]
+               [(= ?type "account")]
+               [(get ?props :account-type) ?atype]
+               (or [(= ?atype "credit-card")]
+                   [(= ?atype "loan")])
+               [(get ?props :minimum-payment) ?payment]]
+             $) [[?monthly-debt]]]
+         ;; Calculate ratio
+         [(/ ?monthly-debt ?monthly-income) ?ratio-decimal]
+         [(* 100 ?ratio-decimal) ?ratio]]
+ :view (fn [rows]
+         (let [r (first rows)]
+           [:div
+            [:p "Monthly Income: $" (format "%.2f" (get r :income))]
+            [:p "Monthly Debt Payments: $" (format "%.2f" (get r :debt-payments))]
+            [:p {:style {:font-weight "bold"
+                        :color (cond
+                                 (< (get r :ratio) 28) "green"
+                                 (< (get r :ratio) 36) "orange"
+                                 :else "red")}}
+             "Debt-to-Income Ratio: " (format "%.1f" (get r :ratio)) "%"]]))}
+#+END_QUERY
+```
+
+## Example Loan Entry
+
+Here's how to create a loan account entry in Logseq:
+
+```markdown
+- Student Loan - Federal Direct
+  type:: account
+  account-type:: loan
+  loan-type:: student
+  account-name:: Federal Direct Subsidized
+  institution:: US Department of Education
+  balance:: 25000
+  interest-rate:: 4.99
+  minimum-payment:: 250
+  original-amount:: 30000
+  [[Finance/Accounts/Student-Loan-Federal]]
+```
+
+```markdown
+- Auto Loan - Toyota Financial
+  type:: account
+  account-type:: loan
+  loan-type:: auto
+  account-name:: 2022 Camry Loan
+  institution:: Toyota Financial Services
+  balance:: 18500
+  interest-rate:: 3.49
+  minimum-payment:: 425
+  original-amount:: 25000
+  [[Finance/Accounts/Auto-Loan-Toyota]]
+```
+
+```markdown
+- Personal Loan - SoFi
+  type:: account
+  account-type:: loan
+  loan-type:: personal
+  account-name:: Debt Consolidation Loan
+  institution:: SoFi
+  balance:: 8000
+  interest-rate:: 6.99
+  minimum-payment:: 200
+  original-amount:: 10000
+  [[Finance/Accounts/Personal-Loan-SoFi]]
+```

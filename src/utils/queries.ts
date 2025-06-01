@@ -107,6 +107,58 @@ export async function getCreditCardDebt(): Promise<number> {
 }
 
 /**
+ * Get total loan debt
+ */
+export async function getLoanDebt(): Promise<number> {
+  try {
+    const accounts = await getBlocksByType("account");
+    let total = 0;
+
+    for (const account of accounts) {
+      const accountType = account.properties?.["account-type"];
+      const balance = parseFloat(account.properties?.balance || "0");
+
+      if (accountType === "loan") {
+        total += balance;
+      }
+    }
+
+    return total;
+  } catch (error) {
+    console.error("Error getting loan debt:", error);
+    return 0;
+  }
+}
+
+/**
+ * Get all loan accounts with details
+ */
+export async function getLoanAccounts(): Promise<any[]> {
+  try {
+    const accounts = await getBlocksByType("account");
+    
+    return accounts.filter(account => 
+      account.properties?.["account-type"] === "loan"
+    );
+  } catch (error) {
+    console.error("Error getting loan accounts:", error);
+    return [];
+  }
+}
+
+/**
+ * Get total debt (credit cards + loans)
+ */
+export async function getTotalDebt(): Promise<number> {
+  const [creditCardDebt, loanDebt] = await Promise.all([
+    getCreditCardDebt(),
+    getLoanDebt()
+  ]);
+  
+  return creditCardDebt + loanDebt;
+}
+
+/**
  * Get available credit
  */
 export async function getAvailableCredit(): Promise<number> {
@@ -143,8 +195,9 @@ export async function getNetWorth(): Promise<number> {
   const liquidCash = await getLiquidCash();
   const investments = await getTotalInvestments();
   const creditCardDebt = await getCreditCardDebt();
+  const loanDebt = await getLoanDebt();
 
-  return liquidCash + investments - creditCardDebt;
+  return liquidCash + investments - creditCardDebt - loanDebt;
 }
 
 /**
@@ -231,7 +284,8 @@ export async function getFinanceSummary(): Promise<FinanceSummary> {
       monthlyExpenses,
       monthlyIncome,
       availableCredit,
-      totalDebt,
+      creditCardDebt,
+      loanDebt,
     ] = await Promise.all([
       getLiquidCash(),
       getTotalInvestments(),
@@ -240,10 +294,12 @@ export async function getFinanceSummary(): Promise<FinanceSummary> {
       getMonthlyIncome(),
       getAvailableCredit(),
       getCreditCardDebt(),
+      getLoanDebt(),
     ]);
 
     const cashFlow = monthlyIncome - monthlyExpenses;
     const monthlyBurnRate = monthlyExpenses;
+    const totalDebt = creditCardDebt + loanDebt;
 
     console.log("Financial summary calculated:", {
       liquidCash,
@@ -253,6 +309,8 @@ export async function getFinanceSummary(): Promise<FinanceSummary> {
       cashFlow,
       availableCredit,
       totalDebt,
+      creditCardDebt,
+      loanDebt,
     });
 
     return {

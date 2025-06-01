@@ -7,10 +7,14 @@
  */
 export interface Account {
   name: string;
-  type: "checking" | "savings" | "credit-card";
+  type: "checking" | "savings" | "credit-card" | "loan";
   balance: number;
   institution: string;
   creditLimit?: number;
+  interestRate?: number;
+  minimumPayment?: number;
+  loanType?: "student" | "auto" | "mortgage" | "personal" | "other";
+  originalAmount?: number;
   lastUpdated: Date;
 }
 
@@ -67,6 +71,8 @@ export interface FinanceSummary {
   cashFlow: number;
   availableCredit: number;
   totalDebt: number;
+  creditCardDebt?: number;
+  loanDebt?: number;
   lastUpdated: Date;
 }
 
